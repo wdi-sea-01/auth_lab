@@ -14,7 +14,11 @@ app.get('/',function(req,res){
 });
 
 app.get('/restricted',function(req,res){
-    res.render('restricted');
+    if(req.getUser()){
+        res.render('restricted');
+    }else{
+        res.send('ACCESS DENIED!!!');
+    }
 });
 
 //login form
@@ -24,9 +28,14 @@ app.get('/auth/login',function(req,res){
 
 app.post('/auth/login',function(req,res){
     //do login here (check password and set session value)
-
-    //user is logged in forward them to the home page
-    res.redirect('/');
+    db.user.find({where:{email:req.body.email}}).then(function(userObj){
+        if(userObj){
+            //check password
+            res.send('we will check the password now');
+        }else{
+            res.send('Unknown user.');
+        }
+    });
 });
 
 //sign up form
@@ -37,14 +46,35 @@ app.get('/auth/signup',function(req,res){
 app.post('/auth/signup',function(req,res){
     //do sign up here (add user to database)
 
+    var userData = {
+        email:req.body.email,
+        password:req.body.password,
+        name:req.body.name
+    };
+
+    var findUser = {
+        email:req.body.email
+    };
+
+    db.user.findOrCreate({where:findUser,defaults:userData}).spread(function(user,created){
+        if(created){
+            res.send('created user');
+        }else{
+            res.send('email already exists');
+        }
+    });
+
+    // res.send(req.body);
+
     //user is signed up forward them to the home page
-    res.redirect('/');
+    //res.redirect('/');
 });
 
 //logout
 //sign up form
 app.get('/auth/logout',function(req,res){
-    res.send('logged out');
+    delete req.session.user;
+    res.redirect('/')
 });
 
 app.listen(3000);
