@@ -2,7 +2,18 @@
 
 Time to implement authentication...and ... Go!
 
------
+##App setup
+
+* fork / clone repo
+* `npm install` -- installs all modules form package.json
+* `dbcreate auth_lab` -- creates the database
+* `sqlize db:migrate` -- creates database tables
+* `nodemon` -- start it up
+
+
+
+
+##By your powers combined...
 
 * **Everyone** signup form (store to database)
 
