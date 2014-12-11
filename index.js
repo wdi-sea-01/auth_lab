@@ -1,5 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
+var session = require('express-session');
+var bcrypt = require('bcrypt');
 var app = express();
 
 var db = require('./models');
@@ -8,9 +10,22 @@ app.set('view engine','ejs');
 
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({extended:false}));
+app.use(session({
+  secret: 'myownsecrectgoeshere',
+  resave: false,
+  saveUninitialized: true
+}));
+
+app.use(function(req,res,next){
+    req.getUser = function(){
+        return req.session.user || false;
+    }
+    next();
+});
+
 
 app.get('/',function(req,res){
-    res.render('index',{user:false});
+    res.render('index',{user:req.getUser()});
 });
 
 app.get('/restricted',function(req,res){
@@ -30,8 +45,18 @@ app.post('/auth/login',function(req,res){
     //do login here (check password and set session value)
     db.user.find({where:{email:req.body.email}}).then(function(userObj){
         if(userObj){
-            //check password
-            res.send('we will check the password now');
+            bcrypt.compare(req.body.password,userObj.password,function(err,match){
+                if(match){
+                    req.session.user={
+                        id:userObj.id,
+                        email:userObj.email,
+                        name:userObj.name
+                    }
+                    res.redirect('/');
+                }else{
+                    res.send('invalid password');
+                }
+            });
         }else{
             res.send('Unknown user.');
         }
