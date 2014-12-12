@@ -1,4 +1,5 @@
 <% include partials/header.ejs %>
+
 <h1>My home page</h1>
 <% if(user) { %>
 Hello, <b><%= typeof user.name === 'string' ? user.name : 'Unknown' %></b>.

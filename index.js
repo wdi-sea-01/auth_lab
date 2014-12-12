@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var bcrypt = require('bcrypt');
+var flash = require('connect-flash');
 var app = express();
 
 var db = require('./models');
@@ -16,6 +17,8 @@ app.use(session({
   saveUninitialized: true
 }));
 
+app.use(flash());
+
 app.use(function(req,res,next){
     req.getUser = function(){
         return req.session.user || false;
@@ -23,9 +26,15 @@ app.use(function(req,res,next){
     next();
 });
 
+app.get('*',function(req,res,next){
+    var alerts = req.flash();
+    res.locals.alerts = alerts;
+    next();
+});
 
 app.get('/',function(req,res){
-    res.render('index',{user:req.getUser()});
+    var user = req.getUser();
+    res.render('index',{user:user});
 });
 
 app.get('/restricted',function(req,res){
@@ -81,12 +90,23 @@ app.post('/auth/signup',function(req,res){
         email:req.body.email
     };
 
-    db.user.findOrCreate({where:findUser,defaults:userData}).spread(function(user,created){
+    db.user.findOrCreate({where:findUser,defaults:userData})
+    .spread(function(user,created){
         if(created){
             res.send('created user');
         }else{
             res.send('email already exists');
         }
+    })
+    .catch(function(error){
+        if(error && Array.isArray(error.errors)){
+            error.errors.forEach(function(errorItem){
+                req.flash('danger',errorItem.message);
+            });
+        }else{
+            req.flash('danger','unknown error');
+        }
+        res.redirect('/auth/signup');
     });
 
     // res.send(req.body);
@@ -99,6 +119,7 @@ app.post('/auth/signup',function(req,res){
 //sign up form
 app.get('/auth/logout',function(req,res){
     delete req.session.user;
+    req.flash('info','You have been logged out.');
     res.redirect('/')
 });
 
